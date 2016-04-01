@@ -1,0 +1,16 @@
+<section id="add">
+  <form action="/" method="post">
+    <textarea name="content" placeholder="Your note&hellip;"></textarea>
+    <input type="submit" value="Take Note!">
+  </form>
+</section>
+
+<% @images.each do |image| %>
+  <article>
+    <p>
+      <%=h image.caption %>
+      <span><a href="/<%= image.id %>">[edit]</a></span>
+    </p>
+    <p class="meta">Created: <%= image.created_at %></p>
+  </article>
+<% end %>

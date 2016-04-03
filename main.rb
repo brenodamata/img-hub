@@ -3,19 +3,30 @@ require 'rubygems'
 require 'data_mapper'
 require 'sinatra/flash'
 require 'sinatra/redirect_with_flash'
+require 'aws/s3'
 
 SITE_TITLE = "Img Hub"
 SITE_DESCRIPTION = "Host them here, use them anywhere."
 
-DataMapper::setup(:default, "sqlite3://#{Dir.pwd}/home.db")
+DataMapper::setup(:default, "sqlite3://#{Dir.pwd}/main.db")
 
 class Image
   include DataMapper::Resource
   property :id, Serial
   property :caption, String
   property :description, Text
+  property :picture, String
   property :created_at, DateTime
   property :updated_at, DateTime
+
+  validate :picture_size
+
+  private
+    def picture_size
+      if picture.size > 5.megabytes
+    		error.add(:picture, "should be less than 5MB")
+    	end
+    end
 end
 
 DataMapper.auto_upgrade!
@@ -23,6 +34,20 @@ DataMapper.auto_upgrade!
 helpers do
   include Rack::Utils
   alias_method :h, :escape_html
+
+  def upload(filename, file)
+    bucket = 'img-hub'
+    AWS::S3::Base.establish_connection!(
+      :access_key_id     => ENV['ACCESS_KEY_ID'],
+      :secret_access_key => ENV['SECRET_ACCESS_KEY']
+    )
+    AWS::S3::S3Object.store(
+      filename,
+      open(file.path),
+      bucket
+    )
+    return filename
+  end
 end
 
 #
@@ -39,12 +64,12 @@ get '/' do
 end
 
 post '/' do
-  n = Note.new
-  n.attributes = {
-    :content => params[:content],
-    :created_at => Time.now,
-    :updated_at => Time.now
-  }
+  # n = Note.new
+  # n.attributes = {
+  #   :content => params[:content],
+  #   :created_at => Time.now,
+  #   :updated_at => Time.now
+  # }
   if n.save
     redirect '/', :notice => 'Note created successfully.'
   else
@@ -52,6 +77,7 @@ post '/' do
   end
 end
 
-get '/about' do
-  erb :about
+post '/upload' do
+  upload(params[:content]['file'][:filename], params[:content]['file'][:tempfile])
+  redirect '/'
 end

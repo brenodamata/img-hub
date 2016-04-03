@@ -4,6 +4,9 @@ require 'data_mapper'
 require 'sinatra/flash'
 require 'sinatra/redirect_with_flash'
 require 'aws/s3'
+require 'dotenv'
+
+Dotenv.load
 
 SITE_TITLE = "Img Hub"
 SITE_DESCRIPTION = "Host them here, use them anywhere."
@@ -19,14 +22,15 @@ class Image
   property :created_at, DateTime
   property :updated_at, DateTime
 
-  validate :picture_size
+  # validate :picture_size
+  # TODO: Find out validation for sinatra
 
   private
-    def picture_size
-      if picture.size > 5.megabytes
-    		error.add(:picture, "should be less than 5MB")
-    	end
-    end
+    # def picture_size
+    #   if picture.size > 5.megabytes
+    # 		error.add(:picture, "should be less than 5MB")
+    # 	end
+    # end
 end
 
 DataMapper.auto_upgrade!
@@ -36,7 +40,7 @@ helpers do
   alias_method :h, :escape_html
 
   def upload(filename, file)
-    bucket = 'img-hub'
+    bucket = ENV['S3_BUCKET']
     AWS::S3::Base.establish_connection!(
       :access_key_id     => ENV['ACCESS_KEY_ID'],
       :secret_access_key => ENV['SECRET_ACCESS_KEY']
